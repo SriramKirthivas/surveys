@@ -3,3 +3,10 @@ mmdb/
 samples/
 *.pyc
 clustertools/mapping-rfc.txt
+
+enhanced_graphs/
+figures/
+fingerprints/
+results/
+
+rc4/
