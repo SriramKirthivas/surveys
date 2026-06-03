@@ -144,20 +144,28 @@ save(fig, 'rc4_cipher_suites')
 # ══════════════════════════════════════════════════════════════════════════════
 # 4. RC4 Multi-Port vs Single-Port
 # ══════════════════════════════════════════════════════════════════════════════
-fig, ax = plt.subplots(figsize=(7, 5))
-multi = rc4['summary']['multi_port_rc4_servers']
-single = rc4['rc4_servers'] - multi
+fig, ax = plt.subplots(figsize=(9, 5))
+# multi_port_rc4_servers = servers with RC4 on >1 port (not necessarily all 5)
+multi = rc4['summary']['multi_port_rc4_servers']   # 83: RC4 on 2+ ports
+single = rc4['rc4_servers'] - multi                # 96: RC4 on exactly 1 port
 
-bars = ax.bar(['RC4 on ALL 5 ports', 'RC4 on some ports'],
-              [multi, single],
-              color=['#c0392b', '#e74c3c'], edgecolor='white', width=0.4)
-for bar, count in zip(bars, [multi, single]):
+# Detailed distribution: how many servers expose RC4 on exactly N ports
+from collections import Counter
+port_dist = Counter(entry['num_rc4_ports'] for entry in rc4['rc4_ip_list'])
+dist_labels = [f'{n} port{"s" if n > 1 else ""}' for n in sorted(port_dist)]
+dist_counts = [port_dist[n] for n in sorted(port_dist)]
+dist_colors = ['#f39c12', '#e67e22', '#e74c3c', '#c0392b', '#922b21']
+
+bars = ax.bar(dist_labels, dist_counts,
+              color=dist_colors[:len(dist_labels)], edgecolor='white', width=0.5)
+for bar, count in zip(bars, dist_counts):
     pct = count / rc4['rc4_servers'] * 100
     ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
-            f'{count} ({pct:.0f}%)', ha='center', fontsize=11, fontweight='bold')
+            f'{count}\n({pct:.0f}%)', ha='center', fontsize=10, fontweight='bold')
 ax.set_ylabel('Number of Servers')
-ax.set_title(f'RC4 Port Coverage (n={rc4["rc4_servers"]})\n'
-             f'{multi} servers use RC4 on every single mail port')
+ax.set_xlabel('Number of ports on which RC4 is exposed')
+ax.set_title(f'RC4 Port Exposure per Server (n={rc4["rc4_servers"]} unique servers)\n'
+             f'{multi} servers expose RC4 on 2+ ports — {port_dist[5]} expose it on all 5')
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
 save(fig, 'rc4_multi_port')
