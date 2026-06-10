@@ -5,8 +5,8 @@ samples/
 clustertools/mapping-rfc.txt
 
 enhanced_graphs/
-figures/
-fingerprints/
 results/
 
 rc4/
+rc4_charts/
+rc4_email/
