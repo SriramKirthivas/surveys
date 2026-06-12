@@ -185,6 +185,7 @@ TELLTALE_GRAB="input.ips"
 TELLTALE_FRESH="records.fresh"
 TELLTALE_CLUSTER="collisions.json"
 TELLTALE_GRAPH="graph.done"
+TELLTALE_ENHANCED="enhanced.done"
 
 if [ "$pdir" != "" ]
 then
@@ -409,17 +410,35 @@ else
 	echo "Graphing records" >>$logf 
 	# this takes a few minutes at least
 	# with legend
-	$srcdir/ReportReuse.py -f $TELLTALE_CLUSTER -a -l -o . -c $country >>$logf 2>&1 
+	$srcdir/ReportReuse.py -f $TELLTALE_CLUSTER -a -l -o . -c $country >>$logf 2>&1
 	# without legend
-	#$srcdir/ReportReuse.py -f $TELLTALE_CLUSTER -a -o . -c $country >>$logf 2>&1 
+	#$srcdir/ReportReuse.py -f $TELLTALE_CLUSTER -a -o . -c $country >>$logf 2>&1
 	if [ "$?" != "0" ]
 	then
 		echo "Error ($?) from ReportReuse.py"
 	else
 		touch $TELLTALE_GRAPH
 	fi
-	echo "Done graphing records" 
-	echo "Done graphing records" >>$logf 
+	echo "Done graphing records"
+	echo "Done graphing records" >>$logf
+
+	# 4b. Post-process the graph*.dot files from ReportReuse.py into
+	# enhanced cluster graphs (hub/bridge highlighting, cross-ASN
+	# edges, per-cluster analytics) - only if step 4 succeeded
+	if [ -f $TELLTALE_GRAPH ]
+	then
+		echo "Generating enhanced cluster graphs"
+		echo "Generating enhanced cluster graphs" >>$logf
+		$srcdir/EnhancedClustersViz.py -i . -o enhanced_graphs --summary >>$logf 2>&1
+		if [ "$?" != "0" ]
+		then
+			echo "Error ($?) from EnhancedClustersViz.py"
+		else
+			touch $TELLTALE_ENHANCED
+		fi
+		echo "Done generating enhanced cluster graphs"
+		echo "Done generating enhanced cluster graphs" >>$logf
+	fi
 fi
 #$srcdir/SameKeys.py $file >$NOW.out 2>&1 
 

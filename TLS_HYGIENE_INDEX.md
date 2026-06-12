@@ -196,7 +196,64 @@ vector for every ASN with ≥10 scanned hosts and runs **k-means clustering**
 
 ---
 
-## 6. Summary of Novel Contributions
+## 6. RC4 Anomaly / Outreach Prioritization
+
+**Script:** `rc4_anomaly_report.py` → `rc4/anomaly_report/`
+**Figures:** `rc4_anomaly_report_figures.py`, `rc4_cluster43_deepdive.py` →
+`rc4_hygiene_charts/fig11-12`
+
+### What it does
+
+Combines the RC4 host list (`rc4/rc4_analysis.json`), the TLS Hygiene Index
+(`rc4/hygiene/host_scores.json`), and the key-reuse cluster files
+(`cluster*.json`) into a single prioritised report identifying *which*
+clusters/providers a remediation contact should target, and *why* each
+one is anomalous. Clusters containing RC4 hosts are classified as:
+
+1. **Cross-ASN key reuse** — an RC4 host shares a TLS key with hosts in a
+   *different* organisation's ASN (highest priority: suggests a stale or
+   misconfigured clone on an otherwise shared/templated deployment).
+2. **Mass RC4 deployment** — >50% of a key-reuse cluster runs RC4 (single
+   provider, many affected hosts — one contact fixes many servers).
+3. **ECDHE/RC4 paradox or port-selective RC4** — forward secrecy on some
+   ports/services but RC4 on others.
+4. Other/standard.
+
+Isolated RC4 hosts (no key reuse with any other scanned host) are grouped
+by ASN/provider for the same purpose.
+
+### Novelty
+
+- Turns the dataset-wide hygiene metric back into a **concrete, actionable
+  artefact** — a ranked outreach list — closing the loop from "we can
+  measure neglect at scale" to "here is exactly who to contact and why".
+- Provides a **case-study deep dive** (Cluster 43) that visually
+  demonstrates *how* an anomaly manifests at the cipher-negotiation level
+  within a shared-key cluster, not just that it exists.
+
+### Key results
+
+- 179 RC4 hosts total: 80 inside 21 key-reuse clusters, 99 isolated.
+- **Provider concentration**: Amazon.com, Inc. accounts for **128 of 179
+  RC4 hosts (71%)** — by far the highest-impact single contact (fig11).
+  Blacknight Internet Solutions accounts for 20.
+- **Cluster 43** is the only Priority-1 (cross-ASN) anomaly: a 23-host
+  shared-key cluster spanning Blacknight Internet Solutions and Iomart
+  Cloud Services (bluemonkeyweb.co.uk). One member
+  (`46.22.131.131`/`131-131.colo.sta.blacknight.ie`) is the *only* host in
+  the cluster negotiating RC4 on ports 25/110/143/993 — every sibling uses
+  ECDHE (forward secrecy) on the same ports despite sharing the same
+  certificate/key — and it has the worst hygiene score in the cluster
+  (6/6) (fig12).
+
+The full ranked report, including per-cluster member tables, is in
+`rc4/anomaly_report/rc4_anomaly_report.md`. **It is marked for internal
+use ahead of supervisor consultation — no provider should be contacted
+without sign-off.**
+
+---
+
+## 7. Summary of Novel Contributions
 
 1. **Generalisation**: a 4-case-study, hand-picked anomaly analysis →
    dataset-wide metric applied to 8,979 hosts.
@@ -211,6 +268,9 @@ vector for every ASN with ≥10 scanned hosts and runs **k-means clustering**
    separation 3.1× → 19×.
 5. **Unsupervised typology**: k-means-derived provider typology that
    recovers and generalises the earlier manual anomaly findings.
+6. **Actionable outreach prioritisation**: a ranked, evidence-backed list
+   of clusters/providers for remediation, anchored by a detailed
+   cipher-level case study of the single cross-ASN anomaly (Cluster 43).
 
 All of this is reproducible from the existing scan output
 (`results/IE-20260317-171424/`) via:
@@ -223,11 +283,14 @@ python3 rc4_software_hygiene.py
 python3 rc4_software_hygiene_figures.py
 python3 rc4_hygiene_advanced.py
 python3 rc4_hygiene_advanced_figures.py
+python3 rc4_anomaly_report.py
+python3 rc4_anomaly_report_figures.py
+python3 rc4_cluster43_deepdive.py
 ```
 
 ---
 
-## 7. File Map
+## 8. File Map
 
 | Path | Description |
 |---|---|
@@ -237,9 +300,13 @@ python3 rc4_hygiene_advanced_figures.py
 | `rc4_software_hygiene_figures.py` | fig6-8: software hygiene, deployment model, Exim EOL |
 | `rc4_hygiene_advanced.py` | Logistic regression weighting + k-means ASN typology (Sections 4-5) |
 | `rc4_hygiene_advanced_figures.py` | fig9-10: weighting comparison, ASN typology heatmap |
+| `rc4_anomaly_report.py` | RC4 outreach prioritisation report (Section 6) |
+| `rc4_anomaly_report_figures.py` | fig11: RC4 hosts by provider |
+| `rc4_cluster43_deepdive.py` | fig12: Cluster 43 cipher-level anomaly deep dive |
 | `rc4/hygiene/` | JSON outputs: `hygiene_summary.json`, `host_scores.json`, `cluster_hygiene.json` |
 | `rc4/software_hygiene/` | JSON output: `software_hygiene_summary.json` |
 | `rc4/hygiene_advanced/` | JSON output: `hygiene_advanced.json` |
-| `rc4_hygiene_charts/` | All 10 figures (fig1-fig10) |
+| `rc4/anomaly_report/` | JSON + Markdown outputs: `rc4_anomaly_report.json`, `rc4_anomaly_report.md` |
+| `rc4_hygiene_charts/` | All 12 figures (fig1-fig12) |
 | `rc4_charts/17-19` | Original A1-A4 anomaly case studies (kept as illustrative examples) |
 | `rc4_crossasn_anomalies.py` | Original anomaly detection script (kept) |
